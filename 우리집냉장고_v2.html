@@ -1,0 +1,110 @@
+
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#e9f4ed">
+<title>우리 집 냉장고</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f7f4;color:#24352c;font-family:system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+main{max-width:1160px;margin:auto;padding:28px 22px 70px}
+header{margin-bottom:24px}
+h1{font-size:clamp(26px,4vw,38px);margin:0 0 7px}
+header p{color:#718178;margin:0}
+.place{border:1px solid #e1e9e1;background:white;border-radius:18px;margin-bottom:16px;overflow:hidden;box-shadow:0 5px 22px #28462a0b}
+.place-head{display:flex;align-items:center;gap:10px;background:#eaf3ec;padding:15px 18px}
+.place-toggle{border:0;background:transparent;display:flex;align-items:center;gap:10px;flex:1;text-align:left;color:#244a34;font-size:19px;font-weight:800;cursor:pointer;padding:4px 0}
+.chev{font-size:13px;transition:transform .2s}
+.collapsed .chev{transform:rotate(-90deg)}
+button{font:inherit;cursor:pointer}
+.add{border:0;border-radius:11px;background:#287a50;color:white;font-weight:800;width:34px;height:34px;font-size:23px;line-height:1}
+.place-body{padding:15px 18px 19px}
+.collapsed .place-body{display:none}
+.category{border:1px solid #e6ebe5;border-radius:14px;margin-bottom:12px;padding:13px;background:#fff}
+.category:last-child{margin-bottom:0}
+.cat-head{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.cat-head h2{font-size:16px;margin:0;flex:1;overflow-wrap:anywhere}
+.cat-head .add{width:29px;height:29px;font-size:20px;background:#e6f3e9;color:#246b42}
+.remove-cat{border:0;background:transparent;color:#a35a5a;font-size:23px;width:29px;height:29px}
+.cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.food{position:relative;border:1px solid #e4eae3;background:#fafcf9;border-radius:13px;min-width:0;min-height:134px;padding:17px 7px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center}
+.emoji{font-size:34px;line-height:1.2}
+.food-name{font-size:14px;font-weight:700;overflow-wrap:anywhere;width:100%;line-height:1.3}
+.qty{border:1px solid #d0e4d4;background:white;color:#286a45;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:750}
+.remove-food{position:absolute;right:5px;top:3px;background:transparent;border:0;color:#9a9e9b;font-size:21px;width:27px;height:27px}
+.empty{color:#93a097;font-size:13px;padding:10px 2px}
+.place-empty{color:#8c9b90;font-size:14px;padding:9px 0}
+dialog{border:0;border-radius:20px;box-shadow:0 22px 90px #0003;width:min(420px,calc(100vw - 30px));padding:25px}
+dialog::backdrop{background:#1a2d2180}
+dialog h2{margin:0 0 16px;font-size:21px}
+label{display:block;font-size:14px;font-weight:750;margin:12px 0 6px}
+input{width:100%;border:1px solid #d2dfd5;border-radius:10px;padding:12px;font:inherit;font-size:16px;outline-color:#287a50}
+.preview{font-size:14px;color:#526c59;margin-top:10px}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+.actions button{border:0;border-radius:10px;padding:11px 17px;font-weight:750}
+.cancel{background:#eef1ee;color:#536258}
+.save{background:#287a50;color:white}
+.hint{font-size:12px;color:#84938a;margin-top:20px}
+button:focus-visible{outline:3px solid #9ac9a5;outline-offset:2px}
+@media(max-width:760px){
+main{padding:22px 12px 50px}
+.place-head{padding:13px}
+.place-body{padding:12px}
+.cards{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.food{min-height:124px}
+.emoji{font-size:30px}
+.food-name{font-size:13px}
+}
+@media(max-width:420px){
+.cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+.food{min-height:122px}
+.place-toggle{font-size:17px}
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>🥬 우리 집 냉장고</h1>
+<p>우리 집 식재료를 한눈에 확인하세요.</p>
+</header>
+<div id="app"></div>
+<p class="hint">식재료는 이 브라우저에 자동 저장됩니다. 다른 기기와 자동으로 공유되지 않으며 브라우저 데이터를 삭제하면 사라질 수 있습니다.</p>
+</main>
+<dialog id="editor">
+<form id="editor-form">
+<h2 id="editor-title"></h2>
+<label for="name">이름</label>
+<input id="name" maxlength="60" required autocomplete="off">
+<div id="qty-wrap">
+<label for="amount">수량 (개)</label>
+<input id="amount" type="number" min="0" step="1" value="1" required inputmode="numeric">
+</div>
+<div id="preview" class="preview"></div>
+<div class="actions">
+<button class="cancel" type="button" id="cancel">취소</button>
+<button class="save" type="submit">저장</button>
+</div>
+</form>
+</dialog>
+<script>
+(()=>{'use strict';
+const KEY='our-home-fridge-v1',places=['냉장고','냉장실','신선실','실온 보관'];
+const emojiMap={돼지고기:'🐷',삼겹살:'🥓',목살:'🐷',양고기:'🐑',소고기:'🐮',쇠고기:'🐮',닭:'🐔',닭고기:'🐔',닭가슴살:'🐔',오리고기:'🦆',고기:'🥩',생선:'🐟',고등어:'🐟',연어:'🐟',참치:'🐟',새우:'🦐',오징어:'🦑',게:'🦀',조개:'🐚',사과:'🍎',바나나:'🍌',딸기:'🍓',포도:'🍇',귤:'🍊',오렌지:'🍊',레몬:'🍋',수박:'🍉',복숭아:'🍑',배:'🍐',키위:'🥝',파인애플:'🍍',블루베리:'🫐',토마토:'🍅',감자:'🥔',고구마:'🍠',양파:'🧅',마늘:'🧄',당근:'🥕',오이:'🥒',상추:'🥬',배추:'🥬',양배추:'🥬',브로콜리:'🥦',버섯:'🍄',가지:'🍆',고추:'🌶️',옥수수:'🌽',파:'🧅',대파:'🧅',달걀:'🥚',계란:'🥚',우유:'🥛',치즈:'🧀',버터:'🧈',요거트:'🥛',두부:'⬜',김치:'🥬',밥:'🍚',쌀:'🍚',빵:'🍞',식빵:'🍞',라면:'🍜',국수:'🍜',파스타:'🍝',떡:'🍡',만두:'🥟',피자:'🍕',햄:'🍖',소시지:'🌭',베이컨:'🥓',밀키트:'🍲',아이스크림:'🍨',초콜릿:'🍫',커피:'☕',물:'💧',주스:'🧃',꿀:'🍯',소금:'🧂',설탕:'🍬',식용유:'🫒',올리브유:'🫒',견과류:'🥜',땅콩:'🥜'};
+const icon=name=>{const n=name.trim().replace(/\s+/g,'');if(emojiMap[n])return emojiMap[n];const match=Object.keys(emojiMap).filter(k=>n.includes(k)).sort((a,b)=>b.length-a.length)[0];return match?emojiMap[match]:''};
+const id=()=>String(Date.now())+'-'+Math.random().toString(36).slice(2);
+const blank=()=>places.map(name=>({id:id(),name,open:true,categories:[]}));
+let data;try{const saved=JSON.parse(localStorage.getItem(KEY));data=Array.isArray(saved)&&saved.length===4&&saved.every((p,i)=>p.name===places[i]&&Array.isArray(p.categories))?saved:blank()}catch{data=blank()}
+const app=document.getElementById('app'),dialog=document.getElementById('editor'),form=document.getElementById('editor-form'),nameInput=document.getElementById('name'),amountInput=document.getElementById('amount'),qtyWrap=document.getElementById('qty-wrap'),preview=document.getElementById('preview');let edit=null;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch{alert('브라우저 저장 공간에 저장하지 못했습니다. 저장 공간을 확인해 주세요.')}}
+function el(tag,cls,text){const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node}
+function button(cls,text,title,action){const b=el('button',cls,text);b.type='button';b.title=title;b.setAttribute('aria-label',title);b.addEventListener('click',action);return b}
+function render(){app.replaceChildren();data.forEach(place=>{const section=el('section','place'+(place.open?'':' collapsed'));const head=el('div','place-head');const toggle=button('place-toggle','',place.name+' 펼치기 또는 접기',()=>{place.open=!place.open;save();render()});toggle.setAttribute('aria-expanded',String(place.open));toggle.append(el('span','chev','▼'),el('span','',place.name));head.append(toggle,button('add','+',place.name+'에 분류 추가',()=>openEditor('category',place)));section.append(head);const body=el('div','place-body');if(!place.categories.length)body.append(el('div','place-empty','분류가 없습니다. + 버튼을 눌러 추가해 보세요.'));place.categories.forEach(cat=>{const box=el('div','category'),catHead=el('div','cat-head');catHead.append(el('h2','',cat.name),button('add','+',cat.name+'에 식재료 추가',()=>openEditor('food',place,cat)),button('remove-cat','×',cat.name+' 분류 삭제',()=>{if(confirm('“'+cat.name+'” 분류와 안에 있는 식재료를 모두 삭제할까요?')){place.categories=place.categories.filter(c=>c.id!==cat.id);save();render()}}));box.append(catHead);if(!cat.foods.length)box.append(el('div','empty','등록된 식재료가 없습니다.'));const cards=el('div','cards');cat.foods.forEach(food=>{const card=el('div','food');card.append(button('remove-food','×',food.name+' 삭제',()=>{cat.foods=cat.foods.filter(f=>f.id!==food.id);save();render()}),el('span','emoji',icon(food.name)),el('div','food-name',food.name),button('qty',food.quantity+'개',food.name+' 수량 변경',()=>openEditor('quantity',place,cat,food)));cards.append(card)});box.append(cards);body.append(box)});section.append(body);app.append(section)})}
+function openEditor(type,place,cat,food){edit={type,place,cat,food};form.reset();qtyWrap.hidden=type==='category';nameInput.readOnly=type==='quantity';document.getElementById('editor-title').textContent=type==='category'?'분류 추가':type==='food'?'식재료 추가':'수량 변경';nameInput.value=type==='quantity'?food.name:'';amountInput.value=type==='quantity'?food.quantity:'1';document.querySelector('label[for="name"]').hidden=type==='quantity';nameInput.hidden=type==='quantity';preview.hidden=type==='category'||type==='quantity';updatePreview();dialog.showModal();(type==='quantity'?amountInput:nameInput).focus()}
+function updatePreview(){preview.textContent=icon(nameInput.value)?'자동 이모지: '+icon(nameInput.value):'해당하는 이모지가 없어 이름만 표시됩니다.'}nameInput.addEventListener('input',updatePreview);document.getElementById('cancel').addEventListener('click',()=>dialog.close());form.addEventListener('submit',e=>{e.preventDefault();if(!edit)return;const {type,place,cat,food}=edit;const name=nameInput.value.trim();if(type!=='quantity'&&!name){alert('이름을 입력해 주세요.');return}const q=Number(amountInput.value);if(type!=='category'&&(!Number.isSafeInteger(q)||q<0)){alert('수량은 0 이상의 정수로 입력해 주세요.');return}if(type==='category')place.categories.push({id:id(),name,foods:[]});else if(type==='food'){if(q>0)cat.foods.push({id:id(),name,quantity:q})}else if(q===0)cat.foods=cat.foods.filter(f=>f.id!==food.id);else food.quantity=q;save();dialog.close();render()});render();
+})();
+</script>
+</body>
+</html>
